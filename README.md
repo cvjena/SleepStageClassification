@@ -7,7 +7,7 @@ We developed and trained three models based on ECG data, piezo data and the comb
 3. The trained models were then applied to different data sets to test their applicability and generalisation capability.
 4. Finally, a comprehensive evaluation was carried out to assess the performance of the models.
 <p align="center">
-<img src="res/sleep_classification_demo.png" width=100% />
+<img src="res/Sleep_classification_demo.png" width=100% />
 </p>
 
 The heart rate (BPM: beats per minute) and activity (short, moving average over one minute) from a 30-minute recording are displayed as examples. Below, the manually annotated sleep stages (observed Dataset B), the predictions from the piezo+ECG model, and the classifications from the Sleepware G3 (Philips) sleep lab software are shown for comparison.
