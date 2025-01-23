@@ -1,4 +1,4 @@
-%% Create dataset A, B and C (consensus label variants) 
+%% Create label A, B and C (consensus label variants) 
 % Plot: 3 different label of sleep stages
 
 
