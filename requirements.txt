@@ -1,5 +1,6 @@
 Matlab tools
 
+Signal Processing Toolbox
 Simple Cohen's kappa == 1.0.0
 Plot (Big) == 1.6.0.0
 Heart Rate Variability Feature Set == 0.1.3
