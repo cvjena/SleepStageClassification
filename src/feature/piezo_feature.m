@@ -1,15 +1,15 @@
 %% Extract piezo feature
-load 'C:\processedData\preprocessed_data.mat', 'daten' ;     % Input: preprocessed data
-output = 'C:\feature\Piezo\';                                % Output: piezo feature
+load 'D:\Sleep_classification\2_processedData\preprocessed_data.mat', 'daten' ;     % Input: preprocessed data
+output = 'D:\Sleep_classification\';                                % Output: piezo feature
 
 %%
 fieldNames = fieldnames(daten);
 samplingrate = 200;
 
-for i = 1:length(fieldNames) 
+for i = 1:4%length(fieldNames) 
     if contains(fieldNames{i}, 'Piezo')
         rawSignal = daten.(fieldNames{i});
-        ecgsignal = daten.(fieldNames{i-1});
+        ecgSignal = daten.(fieldNames{i-1});
         hypnogram1 = daten.(fieldNames{i+1});
         hypnogram2 = daten.(fieldNames{i+2});
         hypnogram3 = daten.(fieldNames{i+3});
@@ -54,7 +54,7 @@ for i = 1:length(fieldNames)
         win_movsum = 2*floor(time_window_dp/2)+1;                   % math to get an odd number for the moving windows
         half_time_window = (win_movsum - 1) / 2;                    % half of it
         m = movsum(movement, win_movsum);                           % moving sum calculation
-        movement_smoothed = m>=half_time_window;                    % decision
+        movement_smoothed = m >= half_time_window;                    % decision
         clear m
 
         sr_mov = 1/0.5;
@@ -62,12 +62,12 @@ for i = 1:length(fieldNames)
         % t_vec_Spectrogram_dur = duration((seconds(nSec/2):seconds(1/Spec_fs):length(rawSignal)-seconds(1/Spec_fs)), 'Format','hh:mm:ss'); % 'Format','hh:mm:ss.SSS' to show ms as well
         mov_factor = 1;
         
-        bewegung1_fenster = 1200; %600;%1200;
-        bewegung2_fenster = 120;
+        window_movement_long = 1200; %600;%1200;
+        window_movement_short = 120;
         
-        bewegung = movsum(movement_smoothed,bewegung1_fenster);
+        movementInWindow = movsum(movement_smoothed,window_movement_long);
 
-        x = bewegung';
+        x = movementInWindow';
         % histogram(bandpower_EEG_smoothed, x)
         [N,edges] = histcounts(x);
         pd = fitdist(x, 'kernel');
@@ -79,106 +79,103 @@ for i = 1:length(fieldNames)
         y_min = y(x_localmin);
         x_max = x_values(x_localmax);
         x_min = x_values(x_localmin);
-        bewegung_baseline = prctile(bewegung, 25);
-        bewegung_mad = mad(bewegung, 1); % median absolute deviation (median is less susceptible to outliers)
-        bewegung_threshold1 = bewegung_baseline+mov_factor*bewegung_mad;
-        bewegung_threshold2 = bewegung_baseline+mov_factor/3*bewegung_mad;
-        % bewegung_threshold1 = x_min(2);
-        % bewegung_threshold2 = x_min(1);
-        bewegung_threshold1 = 1;
-        bewegung_threshold2 = 1;
-        bewegung2 = movsum(movement_smoothed,bewegung2_fenster); 
-        bewegung_baseline2 = prctile(bewegung2, 25);
-        bewegung_mad2 = mad(bewegung2, 1); 
-        bewegung_threshold12 = bewegung_baseline2+mov_factor*bewegung_mad;
-        bewegung_threshold22 = bewegung_baseline2+mov_factor/3*bewegung_mad;
+        movement_baseline = prctile(window_movement_short, 25);
+        movement_mad = mad(window_movement_short, 1); % bew_hypnomedian absolute deviation (median is less susceptible to outliers)
+        movement_threshold1 = movement_baseline+mov_factor*movement_mad;
+        movement_threshold2 = movement_baseline+mov_factor/3*movement_mad;
+        movement_threshold1 = 1;
+        movement_threshold2 = 1;
+        movementInWindow2 = movsum(movement_smoothed,window_movement_short); 
+        movement_baseline2 = prctile(movementInWindow2, 25);
+        movement_mad2 = mad(movementInWindow2, 1); 
+        movement_threshold12 = movement_baseline2+mov_factor*movement_mad;
+        movement_threshold22 = movement_baseline2+mov_factor/3*movement_mad;
 
 
-        bew_hypno = NaN(size(bewegung));
-        for ii=1:length(bewegung)
-            if bewegung(ii)> bewegung_threshold1
-                bew_hypno(ii) = 1;
-            elseif bewegung(ii) > bewegung_threshold2
-                bew_hypno(ii) = 0;
+        movement_hypno = NaN(size(movementInWindow));
+        for k=1:length(movementInWindow)
+            if movementInWindow(k)> movement_threshold1
+                movement_hypno(k) = 1;
+            elseif movementInWindow(k) > movement_threshold2
+                movement_hypno(k) = 0;
             else
-                bew_hypno(ii) = -1;
+                movement_hypno(k) = -1;
             end
         end
-          bew_hypno2 = NaN(size(bewegung2));
-        for ii=1:length(bewegung2)
-            if bewegung2(ii)> bewegung_threshold12
-                bew_hypno2(ii) = 1;
-            elseif bewegung2(ii) > bewegung_threshold22
-                bew_hypno2(ii) = 0;
+          movement_hypno2 = NaN(size(movementInWindow2));
+        for k=1:length(movementInWindow2)
+            if movementInWindow2(k)> movement_threshold12
+                movement_hypno2(k) = 1;
+            elseif movementInWindow2(k) > movement_threshold22
+                movement_hypno2(k) = 0;
             else
-                bew_hypno2(ii) = -1;
+                movement_hypno2(k) = -1;
             end
         end
 
         % combi hypno
-        bew_hypno_comb = NaN(size(bewegung));
-        for ii=1:length(bewegung)
-            if bew_hypno(ii)==1 & bew_hypno2(ii)==0
-                bew_hypno_comb(ii) = 1;
-            elseif bew_hypno(ii)==1 & bew_hypno2(ii)==-1
-                bew_hypno_comb(ii) = 0;
-            elseif bew_hypno(ii)== 0 & bew_hypno2(ii)==-1
-                bew_hypno_comb(ii) = 0;
-            elseif bew_hypno(ii)== 0 & bew_hypno2(ii)==0
-                bew_hypno_comb(ii) = 1;
-            elseif bew_hypno(ii)== -1 & bew_hypno2(ii)==0
-                bew_hypno_comb(ii) = 0;    
-            elseif bew_hypno(ii)== -1 & bew_hypno2(ii)==-1
-                bew_hypno_comb(ii) = -1;    
+        movement_hypno_comb = NaN(size(movementInWindow));
+        for k=1:length(movementInWindow)
+            if movement_hypno(k)==1 & movement_hypno2(k)==0
+                movement_hypno_comb(k) = 1;
+            elseif movement_hypno(k)==1 & movement_hypno2(k)==-1
+                movement_hypno_comb(k) = 0;
+            elseif movement_hypno(k)== 0 & movement_hypno2(k)==-1
+                movement_hypno_comb(k) = 0;
+            elseif movement_hypno(k)== 0 & movement_hypno2(k)==0
+                movement_hypno_comb(k) = 1;
+            elseif movement_hypno(k)== -1 & movement_hypno2(k)==0
+                movement_hypno_comb(k) = 0;    
+            elseif movement_hypno(k)== -1 & movement_hypno2(k)==-1
+                movement_hypno_comb(k) = -1;    
             else
-                bew_hypno_comb(ii) = 0.8;
+                movement_hypno_comb(k) = 0.8;
             end
         end
 
         % average time between peaks
-
-        urspruengliches_array = movement;
-        neues_array = inf(size(urspruengliches_array));
+        original_movement = movement;
+        new_movement = inf(size(original_movement));
 
         % Go through the array from left to right
-        distanz = inf;
-        for ii = 1:length(urspruengliches_array)
-            if urspruengliches_array(ii) == 1
-                distanz = 0;
+        dist = inf;
+        for k = 1:length(original_movement)
+            if original_movement(k) == 1
+                dist = 0;
             end
-            neues_array(ii) = distanz;
-            distanz = distanz + 1;
+            new_movement(k) = dist;
+            dist = dist + 1;
         end
 
         % Move from right to left through the array
-        distanz = inf;
-        for ii = length(urspruengliches_array):-1:1
-            if urspruengliches_array(ii) == 1
-                distanz = 0;
+        dist = inf;
+        for k = length(original_movement):-1:1
+            if original_movement(k) == 1
+                dist = 0;
             end
-            neues_array(ii) = min(neues_array(ii), distanz);
-            distanz = distanz + 1;
+            new_movement(k) = min(new_movement(k), dist);
+            dist = dist + 1;
         end
 
 
-        % max distance
-        original_array = neues_array;
+        % max dist
+        original_array = new_movement;
 
         % array length
         n = length(original_array);
         transformed_array = zeros(1, n);
-        ii = 1;
-        while ii <= n
-            if original_array(ii) == 0
-                transformed_array(ii) = 0;
-                ii = ii + 1;
+        k = 1;
+        while k <= n
+            if original_array(k) == 0
+                transformed_array(k) = 0;
+                k = k + 1;
             else
                 % Find the end of area without zero
-                start_idx = ii;
-                while ii <= n && original_array(ii) ~= 0
-                    ii = ii + 1;
+                start_idx = k;
+                while k <= n && original_array(k) ~= 0
+                    k = k + 1;
                 end
-                end_idx = ii - 1;
+                end_idx = k - 1;
 
                 % Determine the maximum value in this area
                 max_val = max(original_array(start_idx:end_idx));
@@ -190,16 +187,16 @@ for i = 1:length(fieldNames)
         end
 
 
-        % distances to the next movement
-        dist_bew = NaN(size(bewegung));
+        % dists to the next movement
+        dist_movement = NaN(size(movementInWindow));
         j = 0;
-        for ii = 0:length(bewegung)-1
-            if movement(ii+1)== 1
-                dist_bew(ii+1) = 0;
+        for k = 0:length(movementInWindow)-1
+            if movement(k+1)== 1
+                dist_movement(k+1) = 0;
                 j = 0;
             else                 
                 j = j+1;                
-                dist_bew(ii+1) = j;
+                dist_movement(k+1) = j;
             end            
         end
 
@@ -211,31 +208,28 @@ for i = 1:length(fieldNames)
 
         % Insert the 0 in the first position
         indices_ones(2:end) = indices_ones1;
-        % Initialisation of the array for the distances with zeros
-        abstand_array = zeros(size(movement));
+        % Initialisation of the array for the dists with zeros
+        dist_array = zeros(size(movement));
 
-        % Calculation of the distances between the ones and storage in abstand_array
-        for ii = 2:length(indices_ones)
-            abstand_array(indices_ones(ii)) = indices_ones(ii) - indices_ones(ii-1) - 1;
+        % Calculation of the dists between the ones and storage in dist_array
+        for k = 2:length(indices_ones)
+            dist_array(indices_ones(k)) = indices_ones(k) - indices_ones(k-1) - 1;
         end
 
-        dist_time = movsum(dist_bew,bewegung1_fenster);
-        dist_time2 = movsum(dist_bew,bewegung2_fenster);
-        abstand_time = movsum(abstand_array,bewegung1_fenster);
-        abstand_time2 = movsum(abstand_array,bewegung2_fenster);
-        abstaende = movsum(neues_array,bewegung1_fenster);
-        abstaende2 = movsum(neues_array,bewegung2_fenster);
-        maxabstand = movsum(transformed_array,bewegung1_fenster);
-        maxabstand2 = movsum(transformed_array,bewegung2_fenster);
+        dist_time = movsum(dist_movement,window_movement_long);
+        dist_time2 = movsum(dist_movement,window_movement_short);
+        distance_time = movsum(dist_array,window_movement_long);
+        distance_time2 = movsum(dist_array,window_movement_short);
+        spaceing = movsum(new_movement,window_movement_long);
+        spaceing2 = movsum(new_movement,window_movement_short);
+        dist_max = movsum(transformed_array,window_movement_long);
+        dist_max2 = movsum(transformed_array,window_movement_short);
         
-        % Create feature table 30s
-                 
+        % Create feature table 30s    
         Label1 = daten.(fieldNames{i+1});
         Label2 = daten.(fieldNames{i+2});
         Label3 = daten.(fieldNames{i+3});
         Label4 = daten.(fieldNames{i+4});
-        
-
        
         original_array = bandpower_Piezo.bp;
         updated_array = [];
@@ -255,7 +249,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Movement = updated_array';
 
-        original_array = bewegung;
+        original_array = movementInWindow;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -263,7 +257,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Activity_l = updated_array';
 
-        original_array = bewegung2;
+        original_array = movementInWindow2;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -271,7 +265,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Activity_s = updated_array';
 
-        original_array = bew_hypno;
+        original_array = movement_hypno;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -279,15 +273,15 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.hypno1 = updated_array';
 
-        original_array = bew_hypno2;
+        original_array = movement_hypno2;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
             updated_array = [updated_array, z];
         end
         PiezoFeature_Table.hypno2 = updated_array';
-
-        original_array = bew_hypno_comb;
+        
+        original_array = movement_hypno_comb;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -295,7 +289,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.hypno_comb = updated_array';
 
-        original_array = dist_bew;
+        original_array = dist_movement;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -303,7 +297,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Inactivity_l = updated_array';
 
-        original_array = abstand_array;
+        original_array = dist_array;
         updated_array = [];
         for x = 30: 60: length(original_array)-35   % Value is extracted every 60 entries --> every 30s
             z = original_array(x);
@@ -311,7 +305,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Inactivity_2 = updated_array';
 
-        original_array = neues_array;
+        original_array = new_movement;
         updated_array = [];
         for x = 30: 60: length(original_array)-35   
             z = original_array(x);
@@ -335,7 +329,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Inactivity_1_time2 = updated_array';
 
-        original_array = abstand_time;
+        original_array = distance_time;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -343,7 +337,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Inactivity_2_time = updated_array';
 
-        original_array = abstand_time2;
+        original_array = distance_time2;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -351,7 +345,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Inactivity_2_time2 = updated_array';
 
-        original_array = abstaende;
+        original_array = spaceing;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -359,7 +353,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Inactivity_3_time = updated_array';
 
-        original_array = abstaende2;
+        original_array = spaceing2;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -367,7 +361,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.Inactivity_3_time2 = updated_array';
 
-        original_array = maxabstand;
+        original_array = dist_max;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -375,7 +369,7 @@ for i = 1:length(fieldNames)
         end
         PiezoFeature_Table.maxstime1 = updated_array';
 
-        original_array = maxabstand2;
+        original_array = dist_max2;
         updated_array = [];
         for x = 30: 60: length(original_array)-35
             z = original_array(x);
@@ -389,7 +383,7 @@ for i = 1:length(fieldNames)
             z = original_array(x);
             updated_array = [updated_array, z];
         end
-        PiezoFeature_Table.maxabstand = updated_array';
+        PiezoFeature_Table.dist_max = updated_array';
 
         while length(updated_array')< length(Label1)
             Label1 = Label1(1:end-1);
@@ -425,29 +419,28 @@ ylabel('Piezo');
 title(plot_title,'Interpreter', 'none');
 ylim([-1.1 1.1]);
 
-ax2 = nexttile;
-plot(t_Piezo ,correctes);
-ylabel('filtered Piezo');
-title(plot_title,'Interpreter', 'none');
-ylim([-1.1 1.1]);
+%ECG information
+% ax2 = nexttile;
+% plot(t_Piezo ,correctes);
+% ylabel('filtered Piezo');
+% title(plot_title,'Interpreter', 'none');
+% ylim([-1.1 1.1]);
 
-ax3 = nexttile;
-plot(t_Piezo, ecgsignal)
+% ax3 = nexttile;
+% plot(t_Piezo, ecgSignal)
 
 ax4 = nexttile;
 hold on
-p1 = plot(t_Movement, bewegung);
-p2 = plot(t_Movement, bewegung2);
-yline(bewegung_threshold1);
-yline(bewegung_threshold2);
+p1 = plot(t_Movement, movementInWindow);
+p2 = plot(t_Movement, movementInWindow2);
+yline(movement_threshold1);
+yline(movement_threshold2);
 hold off
-glaettung_1 = [num2str(bewegung1_fenster/2/60),' min'];
-glaettung_2 = [num2str(bewegung2_fenster/2/60),' min'];
+glaettung_1 = [num2str(window_movement_long/2/60),' min'];
+glaettung_2 = [num2str(window_movement_short/2/60),' min'];
 legend([p1 p2],{glaettung_1,glaettung_2}, Location="northeast")
 legend('boxoff')
 ylabel('Aktivität'); % Anteil der Bewegung in festgelegtem Zeitfenster
-
-
 
 ax5 = nexttile;
 stairs(t_SP,hypnogram2',Color=[0.4660 0.6740 0.1880], LineWidth=0.9);
@@ -502,33 +495,33 @@ set(gca, 'FontSize', 15, 'XTick', []);
 % set(gca, 'FontSize', 15, 'XTick', []); 
 
 % Plot 5: Activity
-ax4= nexttile;
+ax4 = nexttile;
 hold on;
-p1 = plot(t_Movement, bewegung);
-p2 = plot(t_Movement, bewegung2);
-yline(bewegung_threshold1);
-yline(bewegung_threshold2);
+p1 = plot(t_Movement, movementInWindow);
+p2 = plot(t_Movement, movementInWindow2);
+yline(movement_threshold1);
+yline(movement_threshold2);
 hold off;
-glaettung_1 = [num2str(bewegung1_fenster/2/60), ' min'];
-glaettung_2 = [num2str(bewegung2_fenster/2/60), ' min'];
+glaettung_1 = [num2str(window_movement_long/2/60), ' min'];
+glaettung_2 = [num2str(window_movement_short/2/60), ' min'];
 legend([p1 p2], {glaettung_1, glaettung_2}, 'Location', 'northeast', 'FontSize', 15);
 legend('boxoff');
 ylabel('Activity', 'FontSize', 15);
 set(gca, 'FontSize', 15, 'XTick', []); 
 
-% Plot 6: Distance between Movements
+% Plot 6: dist between Movements
 ax5 = nexttile;
 hold on;
 plot(t_Movement, transformed_array);
 hold off;
-ylabel('Distance', 'FontSize', 15);
+ylabel('dist', 'FontSize', 15);
 set(gca, 'FontSize', 15, 'XTick', []); 
 
 % Plot 7: Inactivity over time
 ax6 = nexttile;
 hold on;
-p5 = plot(t_Movement, maxabstand, 'Color', [0.6350 0.0780 0.1840]);
-p6 = plot(t_Movement, maxabstand2);
+p5 = plot(t_Movement, dist_max, 'Color', [0.6350 0.0780 0.1840]);
+p6 = plot(t_Movement, dist_max2);
 hold off;
 legend([p5 p6], {'10 min', '1 min'}, 'Location', 'northeast', 'FontSize', 15);
 legend('boxoff');
