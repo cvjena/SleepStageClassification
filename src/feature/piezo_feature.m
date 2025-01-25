@@ -1,12 +1,12 @@
 %% Extract piezo feature
 load 'D:\Sleep_classification\2_processedData\preprocessed_data.mat', 'daten' ;     % Input: preprocessed data
-output = 'D:\Sleep_classification\';                                % Output: piezo feature
+output = 'D:\Sleep_classification\';                                                % Output: piezo feature
 
 %%
 fieldNames = fieldnames(daten);
 samplingrate = 200;
 
-for i = 1:4%length(fieldNames) 
+for i = 1:length(fieldNames) 
     if contains(fieldNames{i}, 'Piezo')
         rawSignal = daten.(fieldNames{i});
         ecgSignal = daten.(fieldNames{i-1});
