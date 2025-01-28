@@ -20,11 +20,11 @@ The probands had a gestational age at birth of 27-34 weeks and a postmenstrual a
 
 Due to data protection restrictions, the data cannot be published.
 ## Code
-- `preprocessing/` Scripts for filtering signals and removing noise.
-- `data_analysis/` Calculate statistical measures like Cohen's kappa to evaluate agreement.
-- `feature_extraction/` Extract features from ECG and piezo signals, such as heart rate variability (HRV) and movement patterns.
-- `SVM/` Build, train, and test Support Vector Machine (SVM) models.
-- `sleep_analysis/`  Analyze sleep data, including calculating average sleep duration and the distribution of sleep stages.
+- `src/preprocessing/` Scripts for filtering signals and removing noise.
+- `src/data_analysis/` Calculate statistical measures like Cohen's kappa to evaluate agreement.
+- `src/feature/` Extract features from ECG and piezo signals, such as heart rate variability (HRV) and movement patterns.
+- `src/SVM/` Build, train, and test Support Vector Machine (SVM) models.
+- `src/sleep_analysis/`  Analyze sleep data, including calculating average sleep duration and the distribution of sleep stages.
 - `models/` Store trained models used for testing on different datasets.
 - `plots/` Generate plots and visualizations of results, such as performance metrics and analysis outcomes.
 
