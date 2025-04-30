@@ -44,6 +44,7 @@ or as bib entry
     journal="Biomedical Signal Processing and Control",
     title="Towards unobtrusive sleep stage classification in preterm infants using machine learning",
     year="2025",
+    url={https://www.sciencedirect.com/science/article/pii/S174680942500415X}
 }
 
 ```
